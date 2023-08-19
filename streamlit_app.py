@@ -54,11 +54,12 @@ def save_to_csv(num_faces):
         df = pd.DataFrame(columns=['Time', 'Number of Faces'])
     
     # 新しいデータを追加
-    new_data = {'Time': current_time, 'Number of Faces': num_faces}
-    df = df.append(new_data, ignore_index=True)
+    new_data = pd.DataFrame([{'Time': current_time, 'Number of Faces': num_faces}])
+    df = pd.concat([df, new_data], ignore_index=True)
     
     # CSVファイルに保存
     df.to_csv('data.csv', index=False)
+
 
 st.title("顔検出アプリ")
 st.write("画像をアップロードすると、その画像から顔を検出し、検出された顔の数とExifデータを表示します。")
