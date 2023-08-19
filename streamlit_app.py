@@ -5,6 +5,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import pandas as pd
 from datetime import datetime
+import pytz
 
 # OpenCVの顔検出用のカスケード分類器をロード
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -44,10 +45,15 @@ def get_geotagging(exif):
     return geotagging
 
 def save_to_csv(num_faces):
-    # 現在の日時を取得し、日付と時間に分割
-    current_datetime = datetime.now()
-    current_date = current_datetime.strftime('%Y-%m-%d')
-    current_time = current_datetime.strftime('%H:%M:%S')
+    # 現在のUTC日時を取得
+    current_datetime_utc = datetime.utcnow()
+    
+    # UTC時間を日本時間（JST）に変換
+    jst = pytz.timezone('Asia/Tokyo')
+    current_datetime_jst = current_datetime_utc.astimezone(jst)
+    
+    current_date = current_datetime_jst.strftime('%Y-%m-%d')
+    current_time = current_datetime_jst.strftime('%H:%M:%S')
     
     # 既存のCSVファイルを読み込むか、新しいDataFrameを作成
     try:
