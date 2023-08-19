@@ -20,8 +20,8 @@ def detect_faces(img):
 st.title("顔検出アプリ")
 st.write("画像をアップロードすると、その画像から顔を検出し、検出された顔の数を表示します。")
 
-# 画像アップロードの部分を中央に配置
-uploaded_file = st.file_uploader("画像をアップロードしてください", type=['jpg', 'jpeg', 'png'], align="center")
+# 画像アップロードの部分
+uploaded_file = st.file_uploader("画像をアップロードしてください", type=['jpg', 'jpeg', 'png'])
 
 if uploaded_file is not None:
     st.write("アップロードされた画像：")
