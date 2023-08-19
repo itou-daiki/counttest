@@ -44,17 +44,19 @@ def get_geotagging(exif):
     return geotagging
 
 def save_to_csv(num_faces):
-    # 現在の日時を取得
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # 現在の日時を取得し、日付と時間に分割
+    current_datetime = datetime.now()
+    current_date = current_datetime.strftime('%Y-%m-%d')
+    current_time = current_datetime.strftime('%H:%M:%S')
     
     # 既存のCSVファイルを読み込むか、新しいDataFrameを作成
     try:
         df = pd.read_csv('data.csv')
     except FileNotFoundError:
-        df = pd.DataFrame(columns=['Time', 'Number of Faces'])
+        df = pd.DataFrame(columns=['Date', 'Time', 'Number of Faces'])
     
     # 新しいデータを追加
-    new_data = pd.DataFrame([{'Time': current_time, 'Number of Faces': num_faces}])
+    new_data = pd.DataFrame([{'Date': current_date, 'Time': current_time, 'Number of Faces': num_faces}])
     df = pd.concat([df, new_data], ignore_index=True)
     
     # CSVファイルに保存
