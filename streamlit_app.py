@@ -59,6 +59,9 @@ def save_to_csv(num_faces):
     new_data = pd.DataFrame([{'Date': current_date, 'Time': current_time, 'Number of Faces': num_faces}])
     df = pd.concat([df, new_data], ignore_index=True)
     
+    # 列の順序を変更
+    df = df[['Date', 'Time', 'Number of Faces']]
+    
     # CSVファイルに保存
     df.to_csv('data.csv', index=False)
 
