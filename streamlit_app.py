@@ -51,10 +51,10 @@ def save_to_csv(num_faces):
     try:
         df = pd.read_csv('data.csv')
     except FileNotFoundError:
-        df = pd.DataFrame(columns=['Time', 'Number of Faces'])
+        df = pd.DataFrame(columns=['日時', '検出数'])
     
     # 新しいデータを追加
-    new_data = pd.DataFrame([{'Time': current_time, 'Number of Faces': num_faces}])
+    new_data = pd.DataFrame([{'日時': current_time, '検出数': num_faces}])
     df = pd.concat([df, new_data], ignore_index=True)
     
     # CSVファイルに保存
