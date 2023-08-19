@@ -20,7 +20,7 @@ def detect_faces(img):
 def get_exif_data(image):
     exif_data = image._getexif()
     if exif_data is not None:
-        for tag, value in exif_data.items():
+        for tag in list(exif_data.keys()):  # キーのリストを作成してイテレート
             tag_name = TAGS.get(tag, tag)
             exif_data[tag_name] = exif_data.pop(tag)
     return exif_data
