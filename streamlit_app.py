@@ -39,7 +39,12 @@ if uploaded_file:
     st.image(image_np, caption="顔検出後の画像", channels="BGR", use_column_width=True)
 
     # Exifデータを取得
-    exif_data = {ExifTags.TAGS[k]: v for k, v in image._getexif().items() if k in ExifTags.TAGS and isinstance(v, (str, bytes))}
+    exif_raw = image._getexif()
+    if exif_raw:
+        exif_data = {ExifTags.TAGS[k]: v for k, v in exif_raw.items() if k in ExifTags.TAGS and isinstance(v, (str, bytes))}
+    else:
+        exif_data = {}
+
     # 撮影日時を取得
     capture_time = exif_data.get("DateTimeOriginal", None)
     # GPS情報を取得
