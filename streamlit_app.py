@@ -1,74 +1,40 @@
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
+from PIL import Image, ExifTags
 import pandas as pd
 from datetime import datetime
 import pytz
 
-# OpenCVの顔検出用のカスケード分類器をロード
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 def detect_faces(img):
-    # 画像をグレースケールに変換
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # 顔の検出
-    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-    # 顔の位置に矩形を描画
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
     for (x, y, w, h) in faces:
         cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
     return img, len(faces)
 
 def get_exif_data(image):
-    exif_data = image._getexif()
-    if exif_data is not None:
-        for tag in list(exif_data.keys()):
-            tag_name = TAGS.get(tag, tag)
-            exif_data[tag_name] = exif_data.pop(tag)
-    return exif_data
+    return {ExifTags.TAGS[k]: v for k, v in image._getexif().items() if k in ExifTags.TAGS and isinstance(v, (str, bytes))}
 
 def get_geotagging(exif):
-    if not exif:
-        return None
-
-    geotagging = {}
-    for (idx, tag) in TAGS.items():
-        if tag == 'GPSInfo':
-            if idx not in exif:
-                return None
-
-            for (key, val) in GPSTAGS.items():
-                if key in exif[idx]:
-                    geotagging[val] = exif[idx][key]
-
-    return geotagging
+    if 'GPSInfo' in exif:
+        return {ExifTags.GPSTAGS[k]: v for k, v in exif['GPSInfo'].items() if k in ExifTags.GPSTAGS}
+    return None
 
 def save_to_csv(num_faces):
-    # 現在のUTC日時を取得
-    current_datetime_utc = datetime.utcnow()
-    
-    # UTC時間を日本時間（JST）に変換
-    jst = pytz.timezone('Asia/Tokyo')
-    current_datetime_jst = current_datetime_utc.astimezone(jst)
-    
-    current_date = current_datetime_jst.strftime('%Y-%m-%d')
-    current_time = current_datetime_jst.strftime('%H:%M:%S')
-    
-    # 既存のCSVファイルを読み込むか、新しいDataFrameを作成
+    current_datetime_jst = datetime.utcnow().astimezone(pytz.timezone('Asia/Tokyo'))
+    new_data = pd.DataFrame([{
+        'Date': current_datetime_jst.strftime('%Y-%m-%d'),
+        'Time': current_datetime_jst.strftime('%H:%M:%S'),
+        'Number of Faces': num_faces
+    }])
     try:
         df = pd.read_csv('data.csv')
+        df = pd.concat([df, new_data], ignore_index=True)
     except FileNotFoundError:
-        df = pd.DataFrame(columns=['Date', 'Time', 'Number of Faces'])
-    
-    # 新しいデータを追加
-    new_data = pd.DataFrame([{'Date': current_date, 'Time': current_time, 'Number of Faces': num_faces}])
-    df = pd.concat([df, new_data], ignore_index=True)
-    
-    # 列の順序を変更
-    df = df[['Date', 'Time', 'Number of Faces']]
-    
-    # CSVファイルに保存
+        df = new_data
     df.to_csv('data.csv', index=False)
 
 st.title("顔検出アプリ")
@@ -76,41 +42,25 @@ st.write("画像をアップロードすると、その画像から顔を検出�
 
 uploaded_file = st.file_uploader("画像をアップロードしてください", type=['jpg', 'jpeg', 'png'])
 
-if uploaded_file is not None:
-    st.write("アップロードされた画像：")
+if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="アップロードされた画像", use_column_width=True)
 
     image_np = np.array(image)
     processed_image, num_faces = detect_faces(image_np)
-
     st.write(f"検出された人数: {num_faces}")
     st.image(processed_image, caption="顔検出後の画像", channels="BGR", use_column_width=True)
 
-    # Exifデータの取得
     exif_data = get_exif_data(image)
-    if exif_data:
-        capture_time = exif_data.get("DateTimeOriginal", None)
-        if capture_time:
-            st.write(f"撮影日時: {capture_time}")
+    capture_time = exif_data.get("DateTimeOriginal", None)
+    geotags = get_geotagging(exif_data)
 
-        geotags = get_geotagging(exif_data)
-        if geotags:
-            st.write(f"撮影場所のGPS情報: {geotags}")
-        else:
-            st.write("ExifデータにGPS情報は見つかりませんでした。")
+    if capture_time:
+        st.write(f"撮影日時: {capture_time}")
+    if geotags:
+        st.write(f"撮影場所のGPS情報: {geotags}")
     else:
-        st.write("Exifデータが見つかりませんでした。")
+        st.write("ExifデータにGPS情報は見つかりませんでした。")
 
-    # 検出された人数をCSVに保存
     save_to_csv(num_faces)
-
-    # CSVダウンロードボタンを追加
-    with open('data.csv', 'rb') as file:
-        csv_data = file.read()
-    st.download_button(
-        label="CSVをダウンロード",
-        data=csv_data,
-        file_name="data.csv",
-        mime="text/csv"
-    )
+    st.download_button("CSVをダウンロード", data=open('data.csv', 'rb').read(), file_name="data.csv", mime="text/csv")
