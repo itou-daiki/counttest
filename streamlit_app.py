@@ -20,20 +20,20 @@ def detect_faces(img):
 def get_exif_data(image):
     exif_data = image._getexif()
     if exif_data is not None:
-        for tag in list(exif_data.keys()):  # キーのリストを作成してイテレート
+        for tag in list(exif_data.keys()):
             tag_name = TAGS.get(tag, tag)
             exif_data[tag_name] = exif_data.pop(tag)
     return exif_data
 
 def get_geotagging(exif):
     if not exif:
-        raise ValueError("No EXIF metadata found")
+        return None
 
     geotagging = {}
     for (idx, tag) in TAGS.items():
         if tag == 'GPSInfo':
             if idx not in exif:
-                raise ValueError("No EXIF geotagging found")
+                return None
 
             for (key, val) in GPSTAGS.items():
                 if key in exif[idx]:
@@ -67,5 +67,7 @@ if uploaded_file is not None:
         geotags = get_geotagging(exif_data)
         if geotags:
             st.write(f"撮影場所のGPS情報: {geotags}")
+        else:
+            st.write("ExifデータにGPS情報は見つかりませんでした。")
     else:
         st.write("Exifデータが見つかりませんでした。")
