@@ -1,31 +1,48 @@
-# Streamlitライブラリをインポート
 import streamlit as st
+import cv2
+import numpy as np
+from PIL import Image
 
-# ページ設定（タブに表示されるタイトル、表示幅）
-st.set_page_config(page_title="タイトル", layout="wide")
+# OpenCVの顔検出用のカスケード分類器をロード
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# タイトルを設定
-st.title('Streamlitのサンプルアプリ')
+def detect_faces(img):
+    try:
+        # 画像をグレースケールに変換
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 顔の検出
+        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        # 顔の位置に矩形を描画
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+        return img, len(faces)
+    except Exception as e:
+        st.write(f"エラーが発生しました: {e}")
+        return img, 0
 
-# テキスト入力ボックスを作成し、ユーザーからの入力を受け取る
-user_input = st.text_input('あなたの名前を入力してください')
+st.title("カメラからの映像で人数を数える")
 
-# ボタンを作成し、クリックされたらメッセージを表示
-if st.button('挨拶する'):
-    if user_input:  # 名前が入力されているかチェック
-        st.success(f'🌟 こんにちは、{user_input}さん! 🌟')  # メッセージをハイライト
-    else:
-        st.error('名前を入力してください。')  # エラーメッセージを表示
+uploaded_file = st.file_uploader("映像をアップロードしてください", type=['mp4', 'mov', 'avi'])
 
-# スライダーを作成し、値を選択
-number = st.slider('好きな数字（10進数）を選んでください', 0, 100)
+if uploaded_file is not None:
+    st.video(uploaded_file)
 
-# 補足メッセージ
-st.caption("十字キー（左右）でも調整できます。")
+    # メモリ上で動画を読み込む
+    bytes_data = uploaded_file.read()
+    nparr = np.frombuffer(bytes_data, np.uint8)
+    cap = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-# 選択した数字を表示
-st.write(f'あなたが選んだ数字は「{number}」です。')
+    if cap is not None:
+        frame_list = []
 
-# 選択した数値を2進数に変換
-binary_representation = bin(number)[2:]  # 'bin'関数で2進数に変換し、先頭の'0b'を取り除く
-st.info(f'🔢 10進数の「{number}」を2進数で表現すると「{binary_representation}」になります。 🔢')  # 2進数の表示をハイライト
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame, num_faces = detect_faces(frame)
+            frame_list.append(frame)
+
+        st.write(f"検出された人数: {num_faces}")
+
+        for frame in frame_list:
+            st.image(frame, channels="BGR", use_column_width=True)
