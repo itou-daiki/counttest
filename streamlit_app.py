@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
+import pandas as pd
+from datetime import datetime
 
 # OpenCVの顔検出用のカスケード分類器をロード
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -41,6 +43,23 @@ def get_geotagging(exif):
 
     return geotagging
 
+def save_to_csv(num_faces):
+    # 現在の日時を取得
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 既存のCSVファイルを読み込むか、新しいDataFrameを作成
+    try:
+        df = pd.read_csv('data.csv')
+    except FileNotFoundError:
+        df = pd.DataFrame(columns=['Time', 'Number of Faces'])
+    
+    # 新しいデータを追加
+    new_data = {'Time': current_time, 'Number of Faces': num_faces}
+    df = df.append(new_data, ignore_index=True)
+    
+    # CSVファイルに保存
+    df.to_csv('data.csv', index=False)
+
 st.title("顔検出アプリ")
 st.write("画像をアップロードすると、その画像から顔を検出し、検出された顔の数とExifデータを表示します。")
 
@@ -71,3 +90,6 @@ if uploaded_file is not None:
             st.write("ExifデータにGPS情報は見つかりませんでした。")
     else:
         st.write("Exifデータが見つかりませんでした。")
+
+    # 検出された人数をCSVに保存
+    save_to_csv(num_faces)
