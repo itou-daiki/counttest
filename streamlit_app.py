@@ -60,7 +60,6 @@ def save_to_csv(num_faces):
     # CSVファイルに保存
     df.to_csv('data.csv', index=False)
 
-
 st.title("顔検出アプリ")
 st.write("画像をアップロードすると、その画像から顔を検出し、検出された顔の数とExifデータを表示します。")
 
@@ -94,3 +93,13 @@ if uploaded_file is not None:
 
     # 検出された人数をCSVに保存
     save_to_csv(num_faces)
+
+    # CSVダウンロードボタンを追加
+    with open('data.csv', 'rb') as file:
+        csv_data = file.read()
+    st.download_button(
+        label="CSVをダウンロード",
+        data=csv_data,
+        file_name="data.csv",
+        mime="text/csv"
+    )
