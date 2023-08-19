@@ -2,7 +2,6 @@ import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
-import tempfile
 
 # OpenCVの顔検出用のカスケード分類器をロード
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -17,33 +16,15 @@ def detect_faces(img):
         cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
     return img, len(faces)
 
-st.title("カメラからの映像で人数を数える")
+st.title("画像から人数を数える")
 
-uploaded_file = st.file_uploader("映像をアップロードしてください", type=['mp4', 'mov', 'avi'])
+uploaded_file = st.file_uploader("画像をアップロードしてください", type=['jpg', 'jpeg', 'png'])
 
 if uploaded_file is not None:
-    tfile = tempfile.NamedTemporaryFile(delete=False) 
-    tfile.write(uploaded_file.read())
+    image = Image.open(uploaded_file)
+    image_np = np.array(image)
     
-    st.video(tfile.name)
+    processed_image, num_faces = detect_faces(image_np)
 
-    cap = cv2.VideoCapture(tfile.name)
-
-    if cap.isOpened():
-        frame_list = []
-        total_faces = 0
-
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame, num_faces = detect_faces(frame)
-            total_faces += num_faces
-            frame_list.append(frame)
-
-        st.write(f"検出された人数: {total_faces}")
-
-        for frame in frame_list:
-            st.image(frame, channels="BGR", use_column_width=True)
-    else:
-        st.write("動画の読み込みに失敗しました。")
+    st.write(f"検出された人数: {num_faces}")
+    st.image(processed_image, channels="BGR", use_column_width=True)
